@@ -10,8 +10,7 @@ public class SimpleDNS
 
 	private ArrayList<CIDRData> csvList;
 
-	public static void main(String[] args)
-	{
+	public static void main(String[] args) {
         System.out.println("Hello, DNS!"); 
 
 		if (!validArguments(args)) {
@@ -20,6 +19,7 @@ public class SimpleDNS
 		}
 
 		InetAddress rootDNSip;
+		// first element is root ip, second element is csv file
 		String[] csvAndRootIp = parseArgs(args);
 
 		try {
@@ -29,7 +29,19 @@ public class SimpleDNS
 			return;
 		}
 
+		try {
+			parseCSV(csvAndRootIp[1]);
+		} catch (IllegalArgumentException e) {
+			System.out.println("Cannot parse csv file");
+			return;
+		}
 
+		// resolve dns request
+		DNSHandler requestHandler = new DNSHandler(csvList);
+		while(true) {
+			requestHandler.handleDNSRequest(rootDNSip);
+			
+		}
 		
 	}
 
@@ -47,7 +59,7 @@ public class SimpleDNS
 		argVals[1] = args[0].equals("-e") ? args[1] : args[3];
 	}
 
-	private parseCSV(String csvFile) {
+	private void parseCSV(String csvFile) {
 		csvList = new ArrayList<>();
 		FileReader file = new FileReader(csvFile);
 		BufferedReader reader = new BufferedReader(file);
@@ -55,19 +67,23 @@ public class SimpleDNS
 		String currLine;
 		while ((currLine == reader.readLine()) != null) {
 			currLine = currLine.trim();
-
+			if (!currLine.isEmpty()) {
+				CIDRData record = parseCSVLineToCIDRData(currLine);
+				this.csvList.add(record);
+			}
 		}
 	}
 
-	private parseCSVLineToCIDRData(String record) throws UnknownHostException {
-		String[] CIDRData = record.split("[/,]");
+	private CIDRData parseCSVLineToCIDRData(String record) throws UnknownHostException {
+		String[] recordData = record.split("[/,]");
 
-		InetAddress netAddrObj = InetAddress.getByName(CIDRData[0]);
+		InetAddress netAddrObj = InetAddress.getByName(recordData[0]);
 		ByteBuffer buff = ByteBuffer.wrap(netAddrObj.getAddress());
 		int networkAddr = buff.getInt();
-		int subnetMask = (0xffffffff) << (Integer.SIZE - Integer.parseInt(CIDRData[1]));
+		int subnetMask = (0xffffffff) << (Integer.SIZE - Integer.parseInt(recordData[1]));
 
-		
+		CIDRData ec2Record = new CIDRData(networkAddr, subnetMask, recordData[2]);
+		return ec2Record;
 
 	}
 }
