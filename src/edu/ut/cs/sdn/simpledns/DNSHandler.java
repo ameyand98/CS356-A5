@@ -8,16 +8,21 @@ public class DNSHandler {
 
     private DNSClientConnection clientConnection;
     private static int DNS_PORT = 8053;
-    private int DNS_SEND_PORT;
+    private static int DNS_SEND_PORT = 53;
     private ArrayList<CIDRData> csvList;
 
-    public DNSHandler(ArrayList<CIDRData> csvList, int sendPort) {
-        clientConnection = new DNSClientConnection(DNS_PORT);
-        this.csvList = csvList;
-        DNS_SEND_PORT = sendPort;
+    public DNSHandler(ArrayList<CIDRData> csvList) throws Exception {
+        try {
+            clientConnection = new DNSClientConnection(DNS_PORT);
+            this.csvList = csvList;
+        } catch (Exception e) {
+            System.out.println("Exception: ");
+            System.out.println(e);
+        }
+        
     }
 
-    public void handleDNSRequest(InetAddress dnsServerIP, boolean isRecursive) {
+    public void handleDNSRequest(InetAddress dnsServerIP) throws Exception {
         DatagramPacket dnsPacket = clientConnection.receiveDNSPacket();
         DNS request = DNS.deserialize(dnsPacket.getData(), dnsPacket.getLength());
 
@@ -26,8 +31,6 @@ public class DNSHandler {
             return;
         }
         
-        
-
         InetAddress clientIP = dnsPacket.getAddress();
         int clientPort = dnsPacket.getPort();
 
@@ -47,11 +50,12 @@ public class DNSHandler {
         dnsSocket.send(replyPacket);
     }
 
-    public DatagramPacket recursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req, DatagramSocket socket) {
-        
+    public DatagramPacket recursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req, DatagramSocket socket) throws Exception {
+        byte[] bytes = new byte[4096];
+        return new DatagramPacket(bytes, bytes.length);
     }
 
-    public DatagramPacket nonRecursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req, DatagramSocket socket) {
+    public DatagramPacket nonRecursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req, DatagramSocket socket) throws Exception {
         byte[] bytes = new byte[4096];
 
         DatagramPacket newQuery = new DatagramPacket(query.getData(), query.getLength(), rootAddr, DNS_SEND_PORT);

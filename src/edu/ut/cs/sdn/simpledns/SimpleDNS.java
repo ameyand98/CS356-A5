@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 public class SimpleDNS 
 {
 
-	private ArrayList<CIDRData> csvList;
+	private static ArrayList<CIDRData> csvList;
 
 	public static void main(String[] args) {
         System.out.println("Hello, DNS!"); 
@@ -34,13 +34,23 @@ public class SimpleDNS
 		} catch (IllegalArgumentException e) {
 			System.out.println("Cannot parse csv file");
 			return;
+		} catch (Exception e) {
+			System.out.println("Exception: ");
+			System.out.println(e);
 		}
 
 		// resolve dns request
-		DNSHandler requestHandler = new DNSHandler(csvList);
-		while(true) {
-			requestHandler.handleDNSRequest(rootDNSip);
+		System.out.println("Resolving DNS Request");
+		try {
+			DNSHandler requestHandler = new DNSHandler(csvList);
+			while(true) {
+				requestHandler.handleDNSRequest(rootDNSip);
+			}
+		} catch (Exception e) {
+			System.out.println("Exception: ");
+            System.out.println(e);
 		}
+		
 		
 	}
 
@@ -52,28 +62,29 @@ public class SimpleDNS
 
 	// First element is root ip string 
 	// Second element is csv file
-	private static String[] parseArgs(Strin[] args) {
+	private static String[] parseArgs(String[] args) {
 		String[] argVals = new String[2];
 		argVals[0] = args[0].equals("-r") ? args[1] : args[3];
 		argVals[1] = args[0].equals("-e") ? args[1] : args[3];
+		return argVals; 
 	}
 
-	private void parseCSV(String csvFile) {
-		csvList = new ArrayList<>();
+	private static void parseCSV(String csvFile) throws Exception {
+		csvList = new ArrayList<CIDRData>();
 		FileReader file = new FileReader(csvFile);
 		BufferedReader reader = new BufferedReader(file);
 
 		String currLine;
-		while ((currLine == reader.readLine()) != null) {
+		while ((currLine = reader.readLine()) != null) {
 			currLine = currLine.trim();
 			if (!currLine.isEmpty()) {
 				CIDRData record = parseCSVLineToCIDRData(currLine);
-				this.csvList.add(record);
+				csvList.add(record);
 			}
 		}
 	}
 
-	private CIDRData parseCSVLineToCIDRData(String record) throws UnknownHostException {
+	private static CIDRData parseCSVLineToCIDRData(String record) throws UnknownHostException {
 		String[] recordData = record.split("[/,]");
 
 		InetAddress netAddrObj = InetAddress.getByName(recordData[0]);

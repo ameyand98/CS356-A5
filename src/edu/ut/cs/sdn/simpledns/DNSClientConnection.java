@@ -7,8 +7,14 @@ public class DNSClientConnection {
 
     private DatagramSocket connection;
 
-    public DNSClientConnection(int port) {
-        connection = new DatagramSocket(port);
+    public DNSClientConnection(int port) throws Exception {
+        try {
+            connection = new DatagramSocket(port);
+        } catch (Exception e) {
+            System.out.println("Exception: ");
+            System.out.println(e);
+        }
+        
     }
 
     public DatagramPacket receiveDNSPacket() throws IOException {
