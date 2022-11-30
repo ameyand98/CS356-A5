@@ -40,7 +40,6 @@ public class SimpleDNS
 		DNSHandler requestHandler = new DNSHandler(csvList);
 		while(true) {
 			requestHandler.handleDNSRequest(rootDNSip);
-			
 		}
 		
 	}
