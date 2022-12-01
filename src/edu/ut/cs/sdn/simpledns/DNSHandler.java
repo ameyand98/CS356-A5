@@ -31,38 +31,50 @@ public class DNSHandler {
             return;
         }
         
+        System.out.println("Valid Request Received");
+        
         InetAddress clientIP = dnsPacket.getAddress();
         int clientPort = dnsPacket.getPort();
 
         DatagramPacket replyPacket;
-        DatagramSocket dnsSocket = new DatagramSocket(DNS_PORT);
+        
+
+        System.out.println("IP, Port, and Socket created");
 
 
         // TODO - Handle valid request, recursive or non-recursive
         if (request.isRecursionDesired()) {
             //recursively resolve
-            replyPacket = recursivelyResolve(dnsServerIP, dnsPacket, request, dnsSocket);
+            System.out.println("Recursively Resolved");
+
+            replyPacket = recursivelyResolve(dnsServerIP, dnsPacket, request);
         } else {
             //non-recursively resolve
-            replyPacket = nonRecursivelyResolve(dnsServerIP, dnsPacket, request, dnsSocket);
+            System.out.println("Non-recursively Resolved");
+            replyPacket = nonRecursivelyResolve(dnsServerIP, dnsPacket, request);
         }
 
-        dnsSocket.send(replyPacket);
+        DNS reply = DNS.deserialize(replyPacket.getData(), replyPacket.getLength());
+        System.out.println("Reply Packet is: " + reply.toString());
+
+        replyPacket.setPort(clientPort);
+        replyPacket.setAddress(clientIP);
+
+        clientConnection.sendDNSPacket(replyPacket);
     }
 
-    public DatagramPacket recursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req, DatagramSocket socket) throws Exception {
+    public DatagramPacket recursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req) throws Exception {
+        boolean resolved = false;
         byte[] bytes = new byte[4096];
         return new DatagramPacket(bytes, bytes.length);
     }
 
-    public DatagramPacket nonRecursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req, DatagramSocket socket) throws Exception {
-        byte[] bytes = new byte[4096];
-
+    public DatagramPacket nonRecursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req) throws Exception {
+        DatagramPacket recvPacket;
         DatagramPacket newQuery = new DatagramPacket(query.getData(), query.getLength(), rootAddr, DNS_SEND_PORT);
-        DatagramPacket recvPacket = new DatagramPacket(bytes, bytes.length);
 
-        socket.send(newQuery);
-        socket.receive(recvPacket);
+        clientConnection.sendDNSPacket(newQuery);
+        recvPacket = clientConnection.receiveDNSPacket();
 
         return recvPacket;
     }

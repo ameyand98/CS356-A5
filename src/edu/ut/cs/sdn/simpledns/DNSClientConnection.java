@@ -30,6 +30,10 @@ public class DNSClientConnection {
         connection.send(packet);
     }
 
+    public void sendDNSPacket(DatagramPacket packet) throws IOException {
+        connection.send(packet);
+    }
+
     public void closeConnection() {
         connection.close();
     }

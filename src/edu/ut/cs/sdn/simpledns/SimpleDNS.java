@@ -42,6 +42,7 @@ public class SimpleDNS
 		// resolve dns request
 		System.out.println("Resolving DNS Request");
 		try {
+			
 			DNSHandler requestHandler = new DNSHandler(csvList);
 			while(true) {
 				requestHandler.handleDNSRequest(rootDNSip);

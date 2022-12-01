@@ -1,9 +1,17 @@
+
+OUT = SimpleDNS.jar
+ROOT ?= 198.41.0.4
+CSV ?= ec2.csv
+
+
+
 default:
 	ant
 
 
 run:
-	java -jar SimpleDNS.jar -r 198.41.0.4 -e ec2.csv
+	ant
+	java -jar ${OUT} -r ${ROOT} -e ${CSV}
 
 clean:
 	rm -rf ./bin
