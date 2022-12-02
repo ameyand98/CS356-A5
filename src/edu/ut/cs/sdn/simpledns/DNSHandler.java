@@ -94,22 +94,18 @@ public class DNSHandler {
         while(!isResolved) {
 
             recvPacket = clientConnection.receiveDNSPacket();
-            DNS recv = DNS.deserialize(recvPacket.getData(), recvPacket.getData().length);
+            System.out.println("Packet received from " + recvPacket.getPort());
+            DNS recv = DNS.deserialize(recvPacket.getData(), recvPacket.getLength());
             System.out.println("RECEIVED PACKET DESERIALIZED IS: " + recv.toString());
 
             List<DNSResourceRecord> srcAuths = recv.getAuthorities();
             List<DNSResourceRecord> srcAdds = recv.getAdditional();
 
-            
-            boolean validTypes = false;
-            int authIndex = 0;
-            while (!validTypes && authIndex < srcAuths.size()) {
-                short curType = srcAuths.get(authIndex++).getType();
-                validTypes = (curType == DNS.TYPE_A || curType == DNS.TYPE_AAAA || curType == DNS.TYPE_CNAME || curType == DNS.TYPE_NS);
-            }
-            System.out.println("Authority/Additional has data: " + validTypes + " and additionals are of size " + srcAdds.size() + " and authorities are of size " + srcAuths.size());
-            tgtAuths = validTypes ? srcAuths: tgtAuths;
-            tgtAdds = srcAdds.size() > 0 ? srcAdds: tgtAdds;
+            boolean updateAuth = shouldUpdate(srcAuths);
+            boolean updateAdd = shouldUpdate(srcAdds);
+            System.out.println("Authority/Additional has data: (auth should update)" + updateAuth + " and (additionals should update) " + updateAdd +" additionals are of size " + srcAdds.size() + " and authorities are of size " + srcAuths.size());
+            tgtAuths = updateAuth ? srcAuths: tgtAuths;
+            tgtAdds = updateAdd ? srcAdds: tgtAdds;
 
             List<DNSResourceRecord> curAnswers = recv.getAnswers();
             if(curAnswers.size() > 0) {
@@ -131,13 +127,13 @@ public class DNSHandler {
 
                     List<DNSResourceRecord> replyAnswers = buildAnswers(curAnswers, tgtCNAMEs, req);
 
-                    if(srcAuths.size() == 0) {
-                        System.out.println("RESET authorities");
+                    // recv.setAuthorities(getEntryList(recv.getAuthorities(), tgtAuths));
+                    // recv.setAdditional(getEntryList(recv.getAdditional(), tgtAdds));
+
+                    if(recv.getAuthorities().size() == 0) {
                         recv.setAuthorities(tgtAuths);
                     }
-
-                    if(srcAdds.size() == 0) {
-                        System.out.println("RESET additionals");
+                    if(recv.getAdditional().size() == 0) {
                         recv.setAdditional(tgtAdds);
                     }
 
@@ -159,6 +155,7 @@ public class DNSHandler {
                     
                     curRecv.setQuestions(recv.getQuestions());
                     curRecv.setAnswers(replyAnswers);
+                    
                     curRecv.setAuthorities(getEntryList(recv.getAuthorities(), tgtAuths));
                     curRecv.setAdditional(getEntryList(recv.getAdditional(), tgtAdds));
 
@@ -201,13 +198,16 @@ public class DNSHandler {
 
     private InetAddress getTgtNSAddr(List<DNSResourceRecord> srcAuths, List<DNSResourceRecord> srcAdds) {
         for(DNSResourceRecord authEntry: srcAuths) {
-            String nsNameStr = ((DNSRdataName) authEntry.getData()).getName();
-            for(DNSResourceRecord addEntry: srcAdds) {
-                if(authEntry.getType() == DNS.TYPE_NS && addEntry.getType() == DNS.TYPE_A && addEntry.getName().equals(nsNameStr)) {
-                    System.out.println("TGT NS FOUND: " + nsNameStr);
-                    return ((DNSRdataAddress) addEntry.getData()).getAddress();
+            if (authEntry.getType() == DNS.TYPE_NS) {
+                String nsNameStr = ((DNSRdataName) authEntry.getData()).getName();
+                for(DNSResourceRecord addEntry: srcAdds) {
+                    if(authEntry.getType() == DNS.TYPE_NS && addEntry.getType() == DNS.TYPE_A && addEntry.getName().equals(nsNameStr)) {
+                        System.out.println("TGT NS FOUND: " + nsNameStr);
+                        return ((DNSRdataAddress) addEntry.getData()).getAddress();
+                    }
                 }
             }
+            
         }
         return null;
     }
@@ -217,7 +217,7 @@ public class DNSHandler {
         //Only include A, AAAA, NS, and CNAME entries
         for(DNSResourceRecord entry: curEntries) {
             short curType = entry.getType();
-            if (curType == DNS.TYPE_A || curType == DNS.TYPE_AAAA || curType == DNS.TYPE_CNAME) {
+            if (curType == DNS.TYPE_A || curType == DNS.TYPE_AAAA || curType == DNS.TYPE_CNAME || curType == DNS.TYPE_NS) {
                 res.add(entry);
             }
         }
@@ -261,27 +261,25 @@ public class DNSHandler {
         header.setQuery(isQuery);
         header.setOpcode(DNS.OPCODE_STANDARD_QUERY);
         header.setTruncated(false);
-        header.setRecursionDesired(true);
+        header.setRecursionDesired(false);
         header.setAuthenicated(false);
 
         if (!isQuery) {
             header.setAuthoritative(false);
-            header.setRecursionAvailable(true);
+            header.setRecursionAvailable(false);
             header.setCheckingDisabled(false);
             header.setRcode(DNS.RCODE_NO_ERROR);
         }
     }
 
-    private void setTgtLists(List<DNSResourceRecord> srcAuths, List<DNSResourceRecord> srcAdds, List<DNSResourceRecord> tgtAuths, List<DNSResourceRecord> tgtAdds) {
+    private boolean shouldUpdate(List<DNSResourceRecord> srcEntries) {
         boolean validTypes = false;
         int authIndex = 0;
-        while (!validTypes && authIndex < srcAuths.size()) {
-            short curType = srcAuths.get(authIndex++).getType();
+        while (!validTypes && authIndex < srcEntries.size()) {
+            short curType = srcEntries.get(authIndex++).getType();
             validTypes = (curType == DNS.TYPE_A || curType == DNS.TYPE_AAAA || curType == DNS.TYPE_CNAME || curType == DNS.TYPE_NS);
         }
-        System.out.println("Authority/Additional has data: " + validTypes + " and additionals are of size " + srcAdds.size() + " and authorities are of size " + srcAuths.size());
-        tgtAuths = validTypes ? srcAuths: tgtAuths;
-        tgtAdds = srcAdds.size() > 0 ? srcAdds: tgtAdds;
+        return validTypes;
     }
 
 
