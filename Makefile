@@ -1,6 +1,6 @@
 
 OUT = SimpleDNS.jar
-ROOT ?= 128.104.222.9
+ROOT ?= 198.41.0.4 #128.104.222.9
 CSV ?= ec2.csv
 
 

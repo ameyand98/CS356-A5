@@ -93,7 +93,7 @@ public class SimpleDNS
 		int networkAddr = buff.getInt();
 		int subnetMask = (0xffffffff) << (Integer.SIZE - Integer.parseInt(recordData[1]));
 
-		CIDRData ec2Record = new CIDRData(networkAddr, subnetMask, recordData[2]);
+		CIDRData ec2Record = new CIDRData(networkAddr, subnetMask, recordData[2], Integer.parseInt(recordData[1]));
 		return ec2Record;
 
 	}

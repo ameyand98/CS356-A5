@@ -3,6 +3,7 @@ import edu.ut.cs.sdn.simpledns.packet.*;
 import java.util.*;
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
 
 public class DNSHandler {
 
@@ -250,6 +251,7 @@ public class DNSHandler {
         //HANDLE TXT Records
         if (req.getQuestions().get(0).getType() == DNS.TYPE_A) {
             //TODO: Handle adding TXT records by going through CSV
+            handleTxtRecords(answers);
         }
 
         for(DNSResourceRecord resolvedCNAME: resolvedCNAMEs) {
@@ -258,6 +260,58 @@ public class DNSHandler {
 
 
         return answers;
+    }
+
+    private void handleTxtRecords(List<DNSResourceRecord> answers) {
+        for(int i = answers.size() - 1; i >= 0; i--) {
+            DNSResourceRecord ans = answers.get(i);
+            if(ans.getType() == DNS.TYPE_A) {
+                DNSRdataAddress ansAddr = (DNSRdataAddress)ans.getData();
+                CIDRData tgt = isAssociated(ansAddr.getAddress());
+                if (tgt != null) {
+                    DNSRdataString formattedEntry = new DNSRdataString(tgt.getRegion() + "-" + ansAddr.toString());
+
+					DNSResourceRecord txtRecord = new DNSResourceRecord();
+					txtRecord.setType(DNS.TYPE_TXT);
+					txtRecord.setTtl(3600);
+					txtRecord.setName(ans.getName());
+					txtRecord.setData(formattedEntry);
+
+					answers.add(txtRecord);
+                }
+            }
+        }
+            
+            
+        
+    }
+
+
+    private CIDRData isAssociated(InetAddress ansAddr) {
+        int ansAddrIp = ipToInt(ansAddr);
+		for(CIDRData entry: csvList) {
+			int base = entry.getNetworkAddress();
+			int pow = 32 - entry.size();
+			int power = (int) Math.pow(2.0, pow);
+			if(ansAddrIp >= base && ansAddrIp <= (base + power))
+			{
+				return entry;
+			}
+
+		}
+
+		return null;
+    }
+
+    // Conversion code from this source
+    //https://stackoverflow.com/questions/10087800/convert-a-java-net-inetaddress-to-a-long
+    private int ipToInt(InetAddress tgt) {
+        // ByteOrder.BIG_ENDIAN by default
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.SIZE);
+        buffer.put(tgt.getAddress());
+        buffer.position(0);
+        int intValue = buffer.getInt();
+        return intValue;
     }
 
     private DNS buildDNSQueryHeader(DNS req, DNS recv, DNSResourceRecord ans) {
