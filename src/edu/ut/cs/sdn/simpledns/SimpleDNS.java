@@ -34,9 +34,9 @@ public class SimpleDNS
 		} catch (IllegalArgumentException e) {
 			System.out.println("Cannot parse csv file");
 			return;
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			System.out.println("Exception: ");
-			System.out.println(e);
+			e.printStackTrace() ;
 		}
 
 		// resolve dns request
@@ -47,9 +47,9 @@ public class SimpleDNS
 			while(true) {
 				requestHandler.handleDNSRequest(rootDNSip);
 			}
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			System.out.println("Exception: ");
-            System.out.println(e);
+			e.printStackTrace() ;
 		}
 		
 		

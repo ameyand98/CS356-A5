@@ -5,7 +5,7 @@ import java.io.*;
 
 public class DNSClientConnection {
 
-    private DatagramSocket connection;
+    public DatagramSocket connection;
 
     public DNSClientConnection(int port) throws Exception {
         try {

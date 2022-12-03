@@ -54,7 +54,7 @@ public class DNSHandler {
             System.out.println("Non-recursively Resolved");
             replyPacket = nonRecursivelyResolve(dnsServerIP, dnsPacket);
         }
-
+        
         DNS reply = DNS.deserialize(replyPacket.getData(), replyPacket.getLength());
         System.out.println("Reply Packet is: " + reply.toString());
 
@@ -84,6 +84,120 @@ public class DNSHandler {
     //      Return Packet with new NS addr
     //  NS Addr not found
     //      Return Same Packet (after setting lists)
+    // public DatagramPacket recursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req) throws Exception {
+    //     List<DNSResourceRecord> tgtCNAMEs  = new ArrayList<>();
+    //     List<DNSResourceRecord> tgtAuths  = new ArrayList<>();
+    //     List<DNSResourceRecord> tgtAdds = new ArrayList<>();
+        
+    //     boolean isResolved = false;
+    //     DatagramPacket recvPacket = null;
+    //     DatagramPacket newQuery = new DatagramPacket(query.getData(), query.getLength(), rootAddr, DNS_SEND_PORT);
+
+    //     calls++;
+    //     clientConnection.sendDNSPacket(newQuery);
+        
+    //     while(!isResolved) {
+    //         System.out.println("At " + (calls++) + " call");
+    //         recvPacket = clientConnection.receiveDNSPacket();
+    //         System.out.println("Packet received from " + recvPacket.getAddress());
+    //         // while (recvPacket.getPort() != DNS_SEND_PORT) {
+    //         //     recvPacket = clientConnection.receiveDNSPacket();
+    //         //     System.out.println("Packet received from " + recvPacket.getPort());
+    //         // }
+    //         DNS recv = DNS.deserialize(recvPacket.getData(), recvPacket.getLength());
+
+    //         System.out.println("RECEIVED PACKET DESERIALIZED IS: " + recv.toString());
+
+    //         List<DNSResourceRecord> srcAuths = recv.getAuthorities();
+    //         List<DNSResourceRecord> srcAdds = recv.getAdditional();
+
+    //         boolean updateAuth = shouldUpdate(srcAuths);
+    //         boolean updateAdd = shouldUpdate(srcAdds);
+    //         System.out.println("Authority/Additional has data: (auth should update)" + updateAuth + " and (additionals should update) " + updateAdd +
+    //         " additionals are of size " + srcAdds.size() + " and authorities are of size " + srcAuths.size());
+    //         tgtAuths = updateAuth ? srcAuths: tgtAuths;
+    //         tgtAdds = updateAdd ? srcAdds: tgtAdds;
+
+    //         List<DNSResourceRecord> curAnswers = recv.getAnswers();
+    //         if(curAnswers.size() > 0) {
+    //             //answer found
+    //             DNSResourceRecord ans = curAnswers.get(0);
+    //             DNSQuestion curQuestion = recv.getQuestions().get(0);
+
+    //             if ((ans.getType() == DNS.TYPE_CNAME && curQuestion.getType() == DNS.TYPE_CNAME) || (ans.getType() != DNS.TYPE_CNAME)) {
+    //                 // (BASE CASE) resolved -> build recvPacket
+    //                 System.out.println("RESOLVED -> build recvPacket");
+    //                 isResolved = true;
+
+    //                 List<DNSResourceRecord> replyAnswers = buildAnswers(curAnswers, tgtCNAMEs, req);
+
+    //                 // recv.setAuthorities(getEntryList(recv.getAuthorities(), tgtAuths));
+    //                 // recv.setAdditional(getEntryList(recv.getAdditional(), tgtAdds));
+
+    //                 if(recv.getAuthorities().size() == 0) {
+    //                     recv.setAuthorities(tgtAuths);
+    //                 }
+    //                 if(recv.getAdditional().size() == 0) {
+    //                     recv.setAdditional(tgtAdds);
+    //                 }
+
+    //                 recv.setAnswers(replyAnswers);
+    //                 recv.setQuestions(req.getQuestions());
+
+    //                 setFlags(recv, false);
+
+    //                 recvPacket = new DatagramPacket(recv.serialize(), recv.getLength());
+    //             } else if (ans.getType() == DNS.TYPE_CNAME) {
+    //                 System.out.println("CNAME -> resolve through authority section");
+    //                 // CNAME -> resolve through authority section
+    //                 tgtCNAMEs.add(ans);
+
+    //                 DNS newQueryHeader = buildDNSQueryHeader(req, recv, ans);
+    //                 if (curQuestion.getType() != DNS.TYPE_CNAME) {
+    //                     newQuery = new DatagramPacket(newQueryHeader.serialize(), newQueryHeader.getLength(), rootAddr, DNS_SEND_PORT);
+    //                     clientConnection.sendDNSPacket(newQuery);
+    //                 }
+    //             }
+                
+    //         } else {
+    //             //answer not found
+    //             InetAddress tgtNSAddr = getTgtNSAddr(srcAuths, srcAdds);
+    //             if(tgtNSAddr == null) {
+    //                 System.out.println("NOT RESOLVED JUST EARLY END AS NOTHING FOUND ");
+    //                 //next NS Address not found in additional/authority section -> ignore and just setup reply packet(?)
+    //                 DNS curRecv = new DNS();
+    //                 List<DNSResourceRecord> replyAnswers = buildAnswers(curAnswers, tgtCNAMEs, req);
+
+    //                 System.out.println("REPLY ANSWERS:");
+    //                 for(DNSResourceRecord answer: replyAnswers) {
+    //                     System.out.println(answer);
+    //                 }
+                    
+    //                 curRecv.setQuestions(recv.getQuestions());
+    //                 curRecv.setAnswers(replyAnswers);
+
+    //                 curRecv.setAuthorities(getEntryList(recv.getAuthorities(), tgtAuths));
+    //                 curRecv.setAdditional(getEntryList(recv.getAdditional(), tgtAdds));
+
+    //                 setFlags(curRecv, false);
+
+    //                 curRecv.setId(req.getId());
+
+    //                 return new DatagramPacket(curRecv.serialize(), curRecv.getLength());
+    //             } else {
+    //                 newQuery = new DatagramPacket(newQuery.getData(), newQuery.getLength(), tgtNSAddr, DNS_SEND_PORT);
+    //                 DNS newQueryHeader = DNS.deserialize(newQuery.getData(), newQuery.getLength());
+    //                 System.out.println("Sending following packet to address " + tgtNSAddr.toString() + ": " + newQueryHeader.toString());
+    //                 clientConnection.sendDNSPacket(newQuery);
+    //             } 
+    //         }
+
+    //     }
+
+    //     assert(recvPacket != null);
+    //     return recvPacket;
+    // }
+    
     public DatagramPacket recursivelyResolve(InetAddress rootAddr, DatagramPacket query, DNS req) throws Exception {
         List<DNSResourceRecord> tgtCNAMEs  = new ArrayList<>();
         List<DNSResourceRecord> tgtAuths  = new ArrayList<>();
@@ -93,19 +207,19 @@ public class DNSHandler {
         DatagramPacket recvPacket = null;
         DatagramPacket newQuery = new DatagramPacket(query.getData(), query.getLength(), rootAddr, DNS_SEND_PORT);
 
-        calls++;
-        clientConnection.sendDNSPacket(newQuery);
-        
-        while(!isResolved) {
-            System.out.println("At " + (calls++) + " call");
-            recvPacket = clientConnection.receiveDNSPacket();
-            System.out.println("Packet received from " + recvPacket.getAddress());
-            // while (recvPacket.getPort() != DNS_SEND_PORT) {
-            //     recvPacket = clientConnection.receiveDNSPacket();
-            //     System.out.println("Packet received from " + recvPacket.getPort());
-            // }
-            DNS recv = DNS.deserialize(recvPacket.getData(), recvPacket.getLength());
+        int authListIndex = 0;
 
+        // clientConnection.sendDNSPacket(newQuery);
+        while(!isResolved) {
+
+            clientConnection.sendDNSPacket(newQuery);
+            recvPacket = clientConnection.receiveDNSPacket();
+            while(recvPacket.getPort() != DNS_SEND_PORT) {
+                recvPacket = clientConnection.receiveDNSPacket();
+                System.out.println("Packet received on port: " + recvPacket.getPort());
+            }
+            System.out.println("Packet received from " + recvPacket.getAddress());
+            DNS recv = DNS.deserialize(recvPacket.getData(), recvPacket.getLength());
             System.out.println("RECEIVED PACKET DESERIALIZED IS: " + recv.toString());
 
             List<DNSResourceRecord> srcAuths = recv.getAuthorities();
@@ -113,8 +227,7 @@ public class DNSHandler {
 
             boolean updateAuth = shouldUpdate(srcAuths);
             boolean updateAdd = shouldUpdate(srcAdds);
-            System.out.println("Authority/Additional has data: (auth should update)" + updateAuth + " and (additionals should update) " + updateAdd +
-            " additionals are of size " + srcAdds.size() + " and authorities are of size " + srcAuths.size());
+            System.out.println("Authority/Additional has data: (auth should update)" + updateAuth + " and (additionals should update) " + updateAdd +" additionals are of size " + srcAdds.size() + " and authorities are of size " + srcAuths.size());
             tgtAuths = updateAuth ? srcAuths: tgtAuths;
             tgtAdds = updateAdd ? srcAdds: tgtAdds;
 
@@ -122,24 +235,31 @@ public class DNSHandler {
             if(curAnswers.size() > 0) {
                 //answer found
                 DNSResourceRecord ans = curAnswers.get(0);
-                DNSQuestion curQuestion = recv.getQuestions().get(0);
+                if (ans.getType() == DNS.TYPE_CNAME && recv.getQuestions().get(0).getType() != DNS.TYPE_CNAME) {
+                    System.out.println("CNAME -> resolve through authority section");
+                    // CNAME -> resolve through authority section
+                    tgtCNAMEs.add(ans);
 
-                if ((ans.getType() == DNS.TYPE_CNAME && curQuestion.getType() == DNS.TYPE_CNAME) || (ans.getType() != DNS.TYPE_CNAME)) {
+                    DNS newQueryHeader = buildDNSQueryHeader(req, recv, ans);
+
+                    newQuery = new DatagramPacket(newQueryHeader.serialize(), newQueryHeader.getLength(), rootAddr, DNS_SEND_PORT);
+                    // clientConnection.sendDNSPacket(newQuery);
+                } else {
                     // (BASE CASE) resolved -> build recvPacket
                     System.out.println("RESOLVED -> build recvPacket");
                     isResolved = true;
 
                     List<DNSResourceRecord> replyAnswers = buildAnswers(curAnswers, tgtCNAMEs, req);
 
-                    // recv.setAuthorities(getEntryList(recv.getAuthorities(), tgtAuths));
-                    // recv.setAdditional(getEntryList(recv.getAdditional(), tgtAdds));
+                    recv.setAuthorities(getEntryList(recv.getAuthorities(), tgtAuths));
+                    recv.setAdditional(getEntryList(recv.getAdditional(), tgtAdds));
 
-                    if(recv.getAuthorities().size() == 0) {
-                        recv.setAuthorities(tgtAuths);
-                    }
-                    if(recv.getAdditional().size() == 0) {
-                        recv.setAdditional(tgtAdds);
-                    }
+                    // if(recv.getAuthorities().size() == 0) {
+                    //     recv.setAuthorities(tgtAuths);
+                    // }
+                    // if(recv.getAdditional().size() == 0) {
+                    //     recv.setAdditional(tgtAdds);
+                    // }
 
                     recv.setAnswers(replyAnswers);
                     recv.setQuestions(req.getQuestions());
@@ -147,18 +267,7 @@ public class DNSHandler {
                     setFlags(recv, false);
 
                     recvPacket = new DatagramPacket(recv.serialize(), recv.getLength());
-                } else if (ans.getType() == DNS.TYPE_CNAME) {
-                    System.out.println("CNAME -> resolve through authority section");
-                    // CNAME -> resolve through authority section
-                    tgtCNAMEs.add(ans);
-
-                    DNS newQueryHeader = buildDNSQueryHeader(req, recv, ans);
-                    if (curQuestion.getType() != DNS.TYPE_CNAME) {
-                        newQuery = new DatagramPacket(newQueryHeader.serialize(), newQueryHeader.getLength(), rootAddr, DNS_SEND_PORT);
-                        clientConnection.sendDNSPacket(newQuery);
-                    }
                 }
-                
             } else {
                 //answer not found
                 InetAddress tgtNSAddr = getTgtNSAddr(srcAuths, srcAdds);
@@ -167,15 +276,10 @@ public class DNSHandler {
                     //next NS Address not found in additional/authority section -> ignore and just setup reply packet(?)
                     DNS curRecv = new DNS();
                     List<DNSResourceRecord> replyAnswers = buildAnswers(curAnswers, tgtCNAMEs, req);
-
-                    System.out.println("REPLY ANSWERS:");
-                    for(DNSResourceRecord answer: replyAnswers) {
-                        System.out.println(answer);
-                    }
                     
                     curRecv.setQuestions(recv.getQuestions());
                     curRecv.setAnswers(replyAnswers);
-
+                    
                     curRecv.setAuthorities(getEntryList(recv.getAuthorities(), tgtAuths));
                     curRecv.setAdditional(getEntryList(recv.getAdditional(), tgtAdds));
 
@@ -185,10 +289,9 @@ public class DNSHandler {
 
                     return new DatagramPacket(curRecv.serialize(), curRecv.getLength());
                 } else {
+                    authListIndex = 0;
                     newQuery = new DatagramPacket(newQuery.getData(), newQuery.getLength(), tgtNSAddr, DNS_SEND_PORT);
-                    DNS newQueryHeader = DNS.deserialize(newQuery.getData(), newQuery.getLength());
-                    System.out.println("Sending following packet to address " + tgtNSAddr.toString() + ": " + newQueryHeader.toString());
-                    clientConnection.sendDNSPacket(newQuery);
+                    // clientConnection.sendDNSPacket(newQuery);
                 } 
             }
 
@@ -197,7 +300,6 @@ public class DNSHandler {
         assert(recvPacket != null);
         return recvPacket;
     }
-    
 
     public boolean isRequestValid(DNS request) {
         boolean validQuestions = true;
@@ -314,13 +416,13 @@ public class DNSHandler {
         return intValue;
     }
 
-    private DNS buildDNSQueryHeader(DNS req, DNS recv, DNSResourceRecord ans) {
+    private DNS buildDNSQueryHeader(DNS req, DNS recv, DNSResourceRecord newTgt) {
         DNS queryHeader = new DNS();
 
         DNSQuestion question = new DNSQuestion();
         //https://stackoverflow.com/questions/7875513/java-cast-interface-to-class
-        DNSRdataName data = (DNSRdataName)ans.getData(); 
-        System.out.println("The answer given is " + ans.toString());
+        DNSRdataName data = (DNSRdataName)newTgt.getData(); 
+        System.out.println("The answer given is " + newTgt.toString());
         question.setName(data.getName());
         question.setType(recv.getQuestions().get(0).getType());
 
