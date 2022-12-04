@@ -109,55 +109,63 @@ public class DNSHandler {
         DNSQuestion curQuestion = req.getQuestions().get(0);
 
         if(answers.size() > 0) {
-            //Answers found
-            DNSResourceRecord ans = answers.get(0);
-            if (ans.getType() == curQuestion.getType()) {
-                System.out.println("Answer and Question matched -> build reply packet and return");
-                setFlags(recv, false);
-                if (curQuestion.getType() == DNS.TYPE_A) {
-                    handleTxtRecords(recv.getAnswers());
-                }
-                return recv;
-            } else {
-                System.out.println("Received answer of type " + ans.getType() + " with question type of " + curQuestion.getType()  + ". CNAME Resolution case");
-                //
-                DNS newQueryHeader = buildDNSQueryHeader(req, ans.getData().toString(), curQuestion);
+
+            if (curQuestion.getType() == DNS.TYPE_A || curQuestion.getType() == DNS.TYPE_AAAA) {
+                for(int i = answers.size() - 1; i >= 0; i--) {
+                    DNSResourceRecord ans = answers.get(i);
+                    if (ans.getType() == DNS.TYPE_CNAME) {
+
+                        DNS newQueryHeader = buildDNSQueryHeader(req, ans.getData().toString(), curQuestion);
                 
-                recv = recursivelyResolve(ROOT_DNS_ADDR, newQueryHeader, depth + 1);
-                recv.getAnswers().add(ans);
-                recv.getQuestions().get(0).setName(curQuestion.getName());
-                return recv;
+                        DNS cnameRes = recursivelyResolve(ROOT_DNS_ADDR, newQueryHeader, depth + 1);
+                        if (cnameRes != null) {
+                            answers.addAll(cnameRes.getAnswers());
+                        }
+                        
+                    }
+                }
             }
+            recv = DNS.deserialize(req.serialize(), req.getLength());
+            recv.setAnswers(answers);
+            if (curQuestion.getType() == DNS.TYPE_A) {
+                handleTxtRecords(recv.getAnswers());
+            }
+            return recv;
+
         } else {
             //Answers not found
+            System.out.println("Answer has not been found");
             boolean matchFound = false;
             for(DNSResourceRecord authEntry: auths) {
-                if (authEntry.getType() == DNS.TYPE_NS) {
-                    String nsNameStr = ((DNSRdataName) authEntry.getData()).getName();
-                    for(DNSResourceRecord addEntry: adds) {
-                        if(authEntry.getType() == DNS.TYPE_NS && addEntry.getType() == DNS.TYPE_A && addEntry.getName().equals(nsNameStr)) {
-                            
-                            matchFound = true;
-                            InetAddress tgtNSAddr = ((DNSRdataAddress) addEntry.getData()).getAddress();
-                            System.out.println("A match has been found for Name Server " + nsNameStr + " at the address " + tgtNSAddr.toString());
-                            recv = recursivelyResolve(tgtNSAddr, req, depth + 1);
-                            if (recv != null && recv.getAnswers().size() > 0) {
-                                recv.getAuthorities().addAll(auths);
-                                recv.getAdditional().addAll(adds);
-                                return recv;
-                            }
+                String nsNameStr = authEntry.getData().toString();
+                for(DNSResourceRecord addEntry: adds) {
+                    if(authEntry.getType() == DNS.TYPE_NS && addEntry.getType() == DNS.TYPE_A && addEntry.getName().equals(nsNameStr.toString())) {
+                        
+                        matchFound = true;
+                        InetAddress tgtNSAddr = ((DNSRdataAddress) addEntry.getData()).getAddress();
+                        System.out.println("A match has been found for Name Server " + nsNameStr + " at the address " + tgtNSAddr.toString());
+                        recv = recursivelyResolve(tgtNSAddr, req, depth + 1);
+                        if (recv != null) {
+                            recv.getAuthorities().addAll(auths);
+                            recv.getAdditional().addAll(adds);
+                            return recv;
                         }
                     }
+                }
+                if (authEntry.getType() == DNS.TYPE_NS) {
                     if (!matchFound) {
                         System.out.println("There were no matches, try recursing for each authority");
 
                         DNS newQueryHeader = buildDNSQueryHeader(req, nsNameStr, curQuestion);
-
-                        recv = recursivelyResolve(ROOT_DNS_ADDR, newQueryHeader, depth + 1);
-                        if (recv != null) {
-                            recv.getQuestions().get(0).setName(curQuestion.getName());
-                            return recv;
+                        DNS authResponse = recursivelyResolve(ROOT_DNS_ADDR, newQueryHeader, depth + 1);
+                        if (authResponse != null && authResponse.getAnswers().size() > 0) {
+                            InetAddress tgtNSAddr = InetAddress.getByName(authResponse.getAnswers().get(0).getData().toString());
+                            recv = recursivelyResolve(tgtNSAddr, req, depth + 1);
+                            if (recv != null) {
+                                return recv;
+                            }
                         }
+                        
                     }
                 }
             }
@@ -248,12 +256,12 @@ public class DNSHandler {
         header.setQuery(isQuery);
         header.setOpcode(DNS.OPCODE_STANDARD_QUERY);
         header.setTruncated(false);
-        header.setRecursionDesired(false);
+        header.setRecursionDesired(true);
+        header.setRecursionAvailable(true);
         header.setAuthenicated(false);
 
         if (!isQuery) {
             header.setAuthoritative(false);
-            header.setRecursionAvailable(false);
             header.setCheckingDisabled(false);
             header.setRcode(DNS.RCODE_NO_ERROR);
         }
