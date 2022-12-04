@@ -107,7 +107,6 @@ public class DNSHandler {
         List<DNSResourceRecord> answers = recv.getAnswers();
 
         DNSQuestion curQuestion = req.getQuestions().get(0);
-
         if(answers.size() > 0) {
 
             if (curQuestion.getType() == DNS.TYPE_A || curQuestion.getType() == DNS.TYPE_AAAA) {
@@ -152,8 +151,11 @@ public class DNSHandler {
                         }
                     }
                 }
+            }
+            for(DNSResourceRecord authEntry: auths) {
                 if (authEntry.getType() == DNS.TYPE_NS) {
                     if (!matchFound) {
+                        String nsNameStr = authEntry.getData().toString();
                         System.out.println("There were no matches, try recursing for each authority");
 
                         DNS newQueryHeader = buildDNSQueryHeader(req, nsNameStr, curQuestion);
