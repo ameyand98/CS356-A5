@@ -1,13 +1,12 @@
 
 OUT = SimpleDNS.jar
-ROOT ?= 198.41.0.4
+ROOT ?= 128.104.222.9
 CSV ?= ec2.csv
 
-default:
+default: clean
 	ant
 
-run:
-	ant
+run: default
 	java -jar ${OUT} -r ${ROOT} -e ${CSV}
 
 clean:
